@@ -51,17 +51,17 @@ func bench(b *testing.B, solFun SoluttionFunc) {
 }
 
 func TestSolution0(t *testing.T) {
-	test(t, "Solution0", solveFirst0)
+	test(t, "Solution0", solveFloor0)
 }
 
 func TestSolution1(t *testing.T) {
-	test(t, "Solution1", solveFirst1)
+	test(t, "Solution1", solveFloor1)
 }
 
 func BenchmarkSoltion0(b *testing.B) {
-	bench(b, solveFirst0)
+	bench(b, solveFloor0)
 }
 
 func BenchmarkSoltion1(b *testing.B) {
-	bench(b, solveFirst1)
+	bench(b, solveFloor1)
 }
