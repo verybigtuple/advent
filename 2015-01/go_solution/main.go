@@ -83,7 +83,12 @@ func run() error {
 	defer f.Close()
 
 	resultFloor := solveFloor0(f)
-	f.Seek(0, io.SeekStart)
+	// We should reset the file after it is read once.
+	_, err = f.Seek(0, io.SeekStart)
+	if err != nil {
+		return err
+	}
+	
 	resultBasement := solveBasement(f)
 	fmt.Println("Floor in the end: ", resultFloor)
 	fmt.Println("Basement at: ", resultBasement)
