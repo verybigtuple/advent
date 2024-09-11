@@ -33,7 +33,7 @@ type innerPath struct {
 	visited PointSet
 }
 
-func (ip innerPath) len() int {
+func (ip innerPath) Len() int {
 	return len(ip.visited)
 }
 
@@ -50,7 +50,7 @@ func NewSantaPath() *SantaPath {
 	}
 }
 
-func (sp *SantaPath) move(d rune) error {
+func (sp *SantaPath) Move(d rune) error {
 	var err error
 	sp.current, err = shift(sp.current, d)
 	if err != nil {
@@ -77,7 +77,7 @@ func NewSantaRobotPath() *SantaRobotPath {
 	}
 }
 
-func (srp *SantaRobotPath) move(d rune) error {
+func (srp *SantaRobotPath) Move(d rune) error {
 	var err error
 	var p Point
 	if srp.santaMoves {
@@ -97,13 +97,13 @@ func (srp *SantaRobotPath) move(d rune) error {
 }
 
 type PathMover interface {
-	len() int
-	move(rune) error
+	Len() int
+	Move(rune) error
 }
 
 func CalcMovement(r rune, pm ...PathMover) error {
 	for _, i := range pm {
-		err := i.move(r)
+		err := i.Move(r)
 		if err != nil {
 			return err
 		}
@@ -111,7 +111,7 @@ func CalcMovement(r rune, pm ...PathMover) error {
 	return nil
 }
 
-func process(reader io.Reader) (int, int, error) {
+func Process(reader io.Reader) (int, int, error) {
 	bufReader := bufio.NewReader(reader)
 	santa := NewSantaPath()
 	roboSants := NewSantaRobotPath()
@@ -126,17 +126,17 @@ func process(reader io.Reader) (int, int, error) {
 			return 0, 0, err
 		}
 	}
-	return santa.len(), roboSants.len(), nil
+	return santa.Len(), roboSants.Len(), nil
 }
 
-func runFile() error {
+func RunFile() error {
 	file, err := os.Open("input.txt")
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	houseCount1, houseCount2, err := process(file)
+	houseCount1, houseCount2, err := Process(file)
 	if err != nil {
 		return err
 	}
@@ -145,7 +145,7 @@ func runFile() error {
 }
 
 func main() {
-	err := runFile()
+	err := RunFile()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(-1)
