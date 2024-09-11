@@ -13,8 +13,8 @@ type Point struct {
 
 type PointSet = map[Point]struct{}
 
-func move(v PointSet, current Point, dir rune) (Point, error) {
-	switch dir {
+func shift(current Point, direction rune) (Point, error) {
+	switch direction {
 	case '<':
 		current.x -= 1
 	case '>':
@@ -24,29 +24,99 @@ func move(v PointSet, current Point, dir rune) (Point, error) {
 	case 'v':
 		current.y -= 1
 	default:
-		return current, fmt.Errorf("unexpected symbol %v", dir)
+		return current, fmt.Errorf("unexpected symbol %v", direction)
 	}
-
-	v[current] = struct{}{}
 	return current, nil
 }
 
+type PathMover interface {
+	len() int
+	move(rune) error
+}
+
+type innerPath struct {
+	visited PointSet
+}
+
+func (ip innerPath) len() int {
+	return len(ip.visited)
+}
+
+type SantaPath struct {
+	current Point
+	innerPath
+}
+
+func NewSantaPath() *SantaPath {
+	startPoint := Point{0, 0}
+	return &SantaPath{
+		current:   startPoint,
+		innerPath: innerPath{visited: PointSet{startPoint: struct{}{}}},
+	}
+}
+
+func (sp *SantaPath) move(d rune) error {
+	var err error
+	sp.current, err = shift(sp.current, d)
+	if err != nil {
+		return err
+	}
+	sp.visited[sp.current] = struct{}{}
+	return nil
+}
+
+type SantaRobotPath struct {
+	currentSanta Point
+	currentRobot Point
+	santaMoves   bool
+	innerPath
+}
+
+func NewSantaRobotPath() *SantaRobotPath {
+	startPoint := Point{0, 0}
+	return &SantaRobotPath{
+		currentSanta: startPoint,
+		currentRobot: startPoint,
+		santaMoves:   true,
+		innerPath: innerPath{visited: PointSet{startPoint: struct{}{}}},
+	}
+}
+
+func (srp *SantaRobotPath) move(d rune) error {
+	var err error
+	var p Point
+	if srp.santaMoves {
+		p, err = shift(srp.currentSanta, d)
+		srp.currentSanta = p
+	} else {
+		p, err = shift(srp.currentRobot, d)
+		srp.currentRobot = p
+	}
+	if err != nil {
+		return err
+	}
+	srp.santaMoves = !srp.santaMoves
+
+	srp.visited[p] = struct{}{}
+	return nil
+}
+
+
 func process(reader io.Reader) (int, error) {
 	bufReader := bufio.NewReader(reader)
-	current := Point{0, 0}
-	visited := PointSet{current: struct{}{}}
+	santa := NewSantaPath()
 
 	for {
 		r, _, err := bufReader.ReadRune()
 		if err == io.EOF {
 			break
 		}
-		current, err = move(visited, current, r)
+		err = santa.move(r)
 		if err != nil {
 			return 0, err
 		}
 	}
-	return len(visited), nil
+	return santa.len(), nil
 }
 
 func runFile() error {
