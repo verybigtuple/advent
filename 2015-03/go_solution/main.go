@@ -29,11 +29,6 @@ func shift(current Point, direction rune) (Point, error) {
 	return current, nil
 }
 
-type PathMover interface {
-	len() int
-	move(rune) error
-}
-
 type innerPath struct {
 	visited PointSet
 }
@@ -78,7 +73,7 @@ func NewSantaRobotPath() *SantaRobotPath {
 		currentSanta: startPoint,
 		currentRobot: startPoint,
 		santaMoves:   true,
-		innerPath: innerPath{visited: PointSet{startPoint: struct{}{}}},
+		innerPath:    innerPath{visited: PointSet{startPoint: struct{}{}}},
 	}
 }
 
@@ -101,22 +96,37 @@ func (srp *SantaRobotPath) move(d rune) error {
 	return nil
 }
 
+type PathMover interface {
+	len() int
+	move(rune) error
+}
 
-func process(reader io.Reader) (int, error) {
+func CalcMovement(r rune, pm ...PathMover) error {
+	for _, i := range pm {
+		err := i.move(r)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func process(reader io.Reader) (int, int, error) {
 	bufReader := bufio.NewReader(reader)
 	santa := NewSantaPath()
+	roboSants := NewSantaRobotPath()
 
 	for {
 		r, _, err := bufReader.ReadRune()
 		if err == io.EOF {
 			break
 		}
-		err = santa.move(r)
+		err = CalcMovement(r, santa, roboSants)
 		if err != nil {
-			return 0, err
+			return 0, 0, err
 		}
 	}
-	return santa.len(), nil
+	return santa.len(), roboSants.len(), nil
 }
 
 func runFile() error {
@@ -126,11 +136,11 @@ func runFile() error {
 	}
 	defer file.Close()
 
-	houseCount, err := process(file)
+	houseCount1, houseCount2, err := process(file)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Houses visited: %d", houseCount)
+	fmt.Printf("Houses visited: %d, Robot visited %d", houseCount1, houseCount2)
 	return nil
 }
 
