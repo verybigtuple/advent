@@ -91,12 +91,14 @@ struct SantaPath {
 
 impl SantaPath {
     fn new() -> Self {
-        return SantaPath {
+        let mut s = SantaPath {
             current: Point(0, 0),
             inner: InnerSantaVisited {
                 visited: HashSet::new(),
             },
         };
+        s.inner.visited.insert(Point(0, 0));
+        s
     }
 }
 
@@ -121,7 +123,7 @@ struct SantaRoboPath {
 
 impl SantaRoboPath {
     fn new() -> Self {
-        return SantaRoboPath {
+        let mut s = SantaRoboPath {
             current_robo: Point(0, 0),
             current_santa: Point(0, 0),
             santa_move: true,
@@ -129,6 +131,8 @@ impl SantaRoboPath {
                 visited: HashSet::new(),
             },
         };
+        s.inner.visited.insert(Point(0, 0));
+        s
     }
 }
 
