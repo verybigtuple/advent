@@ -4,6 +4,12 @@ use std::error;
 use std::fs;
 use std::io;
 
+/*
+This may seem too much for the problem solution. But I wanted to try:
+1) Common error type w/o Boxes
+2) Structs and traits
+ */
+
 #[derive(Debug)]
 enum AppError {
     Parse(ShiftError),
