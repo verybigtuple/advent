@@ -5,12 +5,12 @@ import "testing"
 
 func BenchmarkSolve(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		Solve("pqrstuv")
+		Solve("bgvyzdsv", CheckPrefix6)
 	}
 }
 
 func BenchmarkSolveWorkers(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		SolveWithWorkers("pqrstuv")
+		SolveWithWorkers("bgvyzdsv", CheckPrefix6)
 	}
 }
