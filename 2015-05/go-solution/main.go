@@ -31,46 +31,43 @@ type Pair struct {
 	R2 rune
 }
 
-func IsNice2(input string) bool {
-	pairs := make(map[Pair]int)
-	var hasPairs, hasDouble bool
-	var prev, prevPrev rune
-	for i, cur := range input {
-		if !hasPairs {
-			if i == 0 {
-				prev = cur
-				continue
-			}
+// RuneBuf saves history of 2 last runes that are necessary for the second case
+type RuneBuf [2]rune
 
-			currentPair := Pair{prev, cur}
+func (rb *RuneBuf) Push(r rune) {
+	rb[0], rb[1] = r, rb[0]
+}
+
+func IsNice2(input string) bool {
+	// int in this map is index of current rune
+	// using this index we should determine if pairs overlap
+	pairs := make(map[Pair]int)
+	var buf RuneBuf
+	var hasPairs, hasDouble bool
+	for i, cur := range input {
+		if !hasPairs && buf[0] != 0 {
+			currentPair := Pair{buf[0], cur}
 			ind, ok := pairs[currentPair]
+			// in case `aaa` aa overlaps
+			// so the pair will be written in the map as (a, a): 1
+			// the next pair (a, a):2, so 2-1 = 1. Pairs overlap
 			if ok && (i-ind) > 1 {
 				hasPairs = true
 			}
+			// cannot set else here: it might be ok but (i-ind) == 1, in this case I do nothing
 			if !ok {
 				pairs[currentPair] = i
 			}
 		}
 
-		if !hasDouble {
-			if i == 0 {
-				prev = cur
-				continue
-			}
-			if i == 1 {
-				prevPrev = prev
-				prev = cur
-				continue
-			}
-
-			hasDouble = prevPrev == cur
+		if !hasDouble && buf[1] != 0 {
+			hasDouble = buf[1] == cur
 		}
 
 		if hasPairs && hasDouble {
 			return true
 		}
-		prevPrev = prev
-		prev = cur
+		buf.Push(cur)
 	}
 	return false
 }
