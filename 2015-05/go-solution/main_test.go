@@ -31,6 +31,7 @@ func TestIsNice2(t *testing.T) {
 	}{
 		{"qjhvhtzxzqqjkmpb", true},
 		{"xxyxx", true},
+		{"xxxx", true},
 		{"aaa", false},
 		{"uurcxstgmygtbstg", false},
 		{"ieodomkazucvgmuy", false},

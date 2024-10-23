@@ -43,9 +43,11 @@ func IsNice2(input string) bool {
 			}
 
 			currentPair := Pair{prev, cur}
-			if ind, ok := pairs[currentPair]; ok && (i-ind) > 1 {
+			ind, ok := pairs[currentPair]
+			if ok && (i-ind) > 1 {
 				hasPairs = true
-			} else {
+			}
+			if !ok {
 				pairs[currentPair] = i
 			}
 		}
@@ -80,14 +82,19 @@ func ReadFile() error {
 	}
 	defer file.Close()
 
-	nices := 0
+	var nices1, nices2 int
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		if IsNice(scanner.Text()) {
-			nices++
+		line := scanner.Text()
+		if IsNice(line) {
+			nices1++
+		}
+		if IsNice2(line) {
+			nices2++
 		}
 	}
-	fmt.Printf("Read %v nice letters", nices)
+	fmt.Printf("Read %v nice letters with 1st criteria \n", nices1)
+	fmt.Printf("Read %v nice letters with 2nd criteria \n", nices2)
 	return nil
 }
 
