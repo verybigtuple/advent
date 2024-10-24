@@ -2,21 +2,16 @@ package main
 
 import "testing"
 
-func TestIsNice(t *testing.T) {
-	tests := []struct {
-		input string
-		want  bool
-	}{
-		{"aaa", true},
-		{"ugknbfddgicrmopn", true},
-		{"jchzalrnumimnmhp", false}, // no doubles
-		{"haegwjzuvuyypxyu", false}, // xy
-		{"dvszwmarrgswjxmb", false}, // 1 vowel
-	}
+type TestCase struct {
+	input string
+	want bool
+}
 
-	for _, tc := range tests {
+
+func test(t *testing.T, testCases []TestCase, testFunc func(string) bool) {
+	for _, tc := range testCases {
 		t.Run(tc.input, func(t *testing.T) {
-			got := IsNice(tc.input)
+			got := testFunc(tc.input)
 			if tc.want != got {
 				t.Errorf("want: %v, got: %v", tc.want, got)
 			}
@@ -24,11 +19,20 @@ func TestIsNice(t *testing.T) {
 	}
 }
 
+
+func TestIsNice(t *testing.T) {
+	tc := []TestCase{
+		{"aaa", true},
+		{"ugknbfddgicrmopn", true},
+		{"jchzalrnumimnmhp", false}, // no doubles
+		{"haegwjzuvuyypxyu", false}, // xy
+		{"dvszwmarrgswjxmb", false}, // 1 vowel
+	}
+	test(t, tc, IsNice)
+}
+
 func TestIsNice2(t *testing.T) {
-	tests := []struct {
-		input string
-		want  bool
-	}{
+	tc := []TestCase{
 		{"qjhvhtzxzqqjkmpb", true},
 		{"xxyxx", true},
 		{"xxxx", true},
@@ -37,12 +41,5 @@ func TestIsNice2(t *testing.T) {
 		{"ieodomkazucvgmuy", false},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.input, func(t *testing.T) {
-			got := IsNice2(tc.input)
-			if tc.want != got {
-				t.Errorf("want: %v, got: %v", tc.want, got)
-			}
-		})
-	}
+	test(t, tc, IsNice2)
 }
