@@ -1,6 +1,7 @@
 use crate::range::{self, Point};
 use std::error::Error;
 use std::fmt::Display;
+use std::str::CharIndices;
 use std::{iter::Peekable, str::Chars};
 
 #[derive(Debug, PartialEq)]
@@ -33,7 +34,7 @@ pub struct Parser<'a> {
     start: usize,
     next_ind: usize,
     src: &'a str,
-    chars: Peekable<Chars<'a>>,
+    chars: Peekable<CharIndices<'a>>,
 }
 
 impl<'a> Parser<'a> {
@@ -42,7 +43,7 @@ impl<'a> Parser<'a> {
             start: 0,
             next_ind: 0,
             src: input,
-            chars: input.chars().peekable(),
+            chars: input.char_indices().peekable(),
         }
     }
 
@@ -88,9 +89,9 @@ impl<'a> Parser<'a> {
     }
 
     fn skip_rubbish(&mut self) {
-        while let Some(peeked) = self.chars.peek() {
+        while let Some((ind, peeked)) = self.chars.peek() {
+            self.next_ind = *ind;
             if !peeked.is_alphanumeric() {
-                self.next_ind += 1;
                 self.chars.next();
             } else {
                 break;
@@ -100,54 +101,35 @@ impl<'a> Parser<'a> {
 
     fn next_token(&mut self) -> Option<&'a str> {
         self.skip_rubbish();
-        self.start = self.next_ind;
+        let mut start: Option<usize> = None;
+        let mut end: usize = 0;
         loop {
-            self.next_ind += 1;
             let c = self.chars.by_ref().next();
-            if let Some(c) = c {
+            if let Some((ind, c)) = c {
+                if start == None {
+                    start = Some(ind)
+                }
+                end = ind;
                 if !c.is_alphanumeric() {
                     break;
                 }
             } else {
+                end = self.src.len();
                 break;
             }
         }
 
-        if self.start < self.next_ind - 1 {
-            Some(self.exctract_substring(self.start, self.next_ind - 1))
-        } else {
-            None
+        match start {
+            Some(s) if s < end => Some(&self.src[s..end]),
+            _ => None,
         }
-    }
 
-    fn exctract_substring(&self, start: usize, end: usize) -> &'a str {
-        let (start_i, _) = self.src.char_indices().nth(start).unwrap_or((0, 0 as char));
-        let (stop_i, _) = self
-            .src
-            .char_indices()
-            .nth(end)
-            .unwrap_or((self.src.len(), 0 as char));
-        &self.src[start_i..stop_i]
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test]
-    fn test_skip_rubbish() {
-        let mut parser = Parser::new(" abc");
-        parser.skip_rubbish();
-        assert_eq!(1, parser.next_ind);
-        assert_eq!('a', parser.chars.next().unwrap());
-    }
-
-    #[test]
-    fn test_extract_substring() {
-        let mut parser = Parser::new("aaa bbb");
-        assert_eq!("aaa", parser.exctract_substring(0, 3));
-        assert_eq!("bbb", parser.exctract_substring(4, 8));
-    }
 
     #[test]
     fn test_next_token() {
@@ -167,9 +149,17 @@ mod tests {
     }
 
     #[test]
+    fn test_utf_tokens() {
+        let mut tokens = Parser::new("привет, мир");
+        assert_eq!(Some("привет"), tokens.next_token());
+        assert_eq!(Some("мир"), tokens.next_token());
+        assert_eq!(None, tokens.next_token());
+    }
+
+    #[test]
     fn test_parsing_turn_on() {
         let mut parser = Parser::new("turn on 0,0 through 999,999");
-        let expected = ParsedLine{
+        let expected = ParsedLine {
             op: Operation::TurnOn,
             from: Point(0, 0),
             to: Point(999, 999),
@@ -177,11 +167,10 @@ mod tests {
         assert_eq!(Ok(expected), parser.parse());
     }
 
-    
     #[test]
     fn test_parsing_turn_off() {
         let mut parser = Parser::new("turn off 100,0 through 999,0");
-        let expected = ParsedLine{
+        let expected = ParsedLine {
             op: Operation::TurnOff,
             from: Point(100, 0),
             to: Point(999, 0),
@@ -192,22 +181,11 @@ mod tests {
     #[test]
     fn test_parsing_toggle() {
         let mut parser = Parser::new("toggle 0,0 through 999,999");
-        let expected = ParsedLine{
+        let expected = ParsedLine {
             op: Operation::Toggle,
             from: Point(0, 0),
             to: Point(999, 999),
         };
         assert_eq!(Ok(expected), parser.parse());
     }
-
-    #[test]
-    fn nth() {
-        let s = "привет";
-        for (i, c) in s.char_indices() {
-            println!("{}={}", i, c);
-        }
-        let a = &s[0..4];
-        println!("{}", a);
-    }
-
 }
