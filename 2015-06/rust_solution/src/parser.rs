@@ -1,8 +1,8 @@
-use crate::range::{self, Point};
+use crate::range::Point;
 use std::error::Error;
 use std::fmt::Display;
-use std::str::CharIndices;
-use std::{iter::Peekable, str::Chars};
+use std::iter::Peekable;
+use std::str::{CharIndices};
 
 #[derive(Debug, PartialEq)]
 pub struct ParseError;
@@ -25,14 +25,12 @@ pub enum Operation {
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct ParsedLine {
     pub op: Operation,
-    pub from: range::Point,
-    pub to: range::Point,
+    pub from: Point,
+    pub to: Point,
 }
 
 #[derive(Debug)]
 pub struct Parser<'a> {
-    start: usize,
-    next_ind: usize,
     src: &'a str,
     chars: Peekable<CharIndices<'a>>,
 }
@@ -40,8 +38,6 @@ pub struct Parser<'a> {
 impl<'a> Parser<'a> {
     pub fn new(input: &'a str) -> Self {
         Self {
-            start: 0,
-            next_ind: 0,
             src: input,
             chars: input.char_indices().peekable(),
         }
@@ -88,42 +84,24 @@ impl<'a> Parser<'a> {
         Ok(Point(x, y))
     }
 
-    fn skip_rubbish(&mut self) {
-        while let Some((ind, peeked)) = self.chars.peek() {
-            self.next_ind = *ind;
-            if !peeked.is_alphanumeric() {
-                self.chars.next();
-            } else {
-                break;
-            }
-        }
-    }
-
     fn next_token(&mut self) -> Option<&'a str> {
-        self.skip_rubbish();
-        let mut start: Option<usize> = None;
-        let mut end: usize = 0;
-        loop {
-            let c = self.chars.by_ref().next();
-            if let Some((ind, c)) = c {
-                if start == None {
-                    start = Some(ind)
-                }
-                end = ind;
-                if !c.is_alphanumeric() {
-                    break;
-                }
-            } else {
-                end = self.src.len();
-                break;
-            }
-        }
+        // Skip non-alphanumeric characters
+        let start = self
+            .chars
+            .by_ref()
+            .find(|(_, c)| c.is_alphanumeric())
+            .map(|(ind, _)| ind)?; // if no tokens here we return
 
-        match start {
-            Some(s) if s < end => Some(&self.src[s..end]),
-            _ => None,
-        }
+        // Find the end of the token (inclusive)
+        let end = self
+            .chars
+            .by_ref()
+            .find(|(_, c)| !c.is_alphanumeric())
+            .map(|(ind, _)| ind)
+            .unwrap_or(self.src.len());
 
+        // Return the token slice using the valid UTF-8 indices
+        Some(&self.src[start..end])
     }
 }
 
