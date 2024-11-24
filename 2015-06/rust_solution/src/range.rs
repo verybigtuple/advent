@@ -89,14 +89,12 @@ mod tests {
     #[test]
     fn test_count_big_range() {
         let mut r = PointRange::with_max(Point(0, 0), Point(999, 999), Point(999, 999));
-        let mut count = r.count();
-        assert_eq!(1_000_000, count);
+        assert_eq!(1_000_000, r.count());
     }
 
     #[test]
     fn test_count_null_range() {
         let mut r = PointRange::with_max(Point(499, 499), Point(500, 500), Point(999, 999));
-        let mut count = r.count();
-        assert_eq!(4, count);
+        assert_eq!(4, r.count());
     }
 }
