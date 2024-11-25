@@ -1,5 +1,3 @@
-const MAX_LEN: usize = 1000 * 1000;
-
 #[derive(Debug)]
 pub struct ByteMap {
     vec: Vec<u8>,
@@ -7,14 +5,7 @@ pub struct ByteMap {
 }
 
 impl ByteMap {
-    pub fn new() -> ByteMap {
-        Self::with_len(MAX_LEN)
-    }
-
-    pub fn with_len(len: usize) -> ByteMap {
-        if len > MAX_LEN {
-            panic!("Cannot be bigger than {}", MAX_LEN);
-        }
+    pub fn new(len: usize) -> ByteMap {
         return ByteMap {
             vec: vec![0; len],
             count: 0,

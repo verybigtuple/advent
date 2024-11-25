@@ -14,11 +14,7 @@ pub struct PointRange {
 }
 
 impl PointRange {
-    pub fn new(from: Point, to: Point) -> PointRange {
-        Self::with_max(from, to, Point(MAX_X, MAX_Y))
-    }
-
-    pub fn with_max(from: Point, to: Point, max: Point) -> PointRange {
+    pub fn new(from: Point, to: Point, max: Point) -> PointRange {
         if from > to {
             panic!("To point should be more than From point");
         }
@@ -65,21 +61,21 @@ mod tests {
     #[test]
     fn test_empty_range() {
         let start = Point(0, 0);
-        let mut r = PointRange::with_max(start, start, start);
+        let mut r = PointRange::new(start, start, start);
         assert_eq!(Some(0), r.next());
         assert_eq!(None, r.next());
     }
 
     #[test]
     fn test_one_point() {
-        let mut r = PointRange::with_max(Point(1, 1), Point(1, 1), Point(2, 2));
+        let mut r = PointRange::new(Point(1, 1), Point(1, 1), Point(2, 2));
         assert_eq!(Some(4), r.next());
         assert_eq!(None, r.next());
     }
 
     #[test]
     fn test_range() {
-        let mut r = PointRange::with_max(Point(1, 1), Point(2, 2), Point(2, 2));
+        let mut r = PointRange::new(Point(1, 1), Point(2, 2), Point(2, 2));
         for i in (4..=8).map(|x| x as usize) {
             assert_eq!(Some(i), r.next());
         }
@@ -88,13 +84,13 @@ mod tests {
 
     #[test]
     fn test_count_big_range() {
-        let mut r = PointRange::with_max(Point(0, 0), Point(999, 999), Point(999, 999));
+        let r = PointRange::new(Point(0, 0), Point(999, 999), Point(999, 999));
         assert_eq!(1_000_000, r.count());
     }
 
     #[test]
     fn test_count_null_range() {
-        let mut r = PointRange::with_max(Point(499, 499), Point(500, 500), Point(999, 999));
+        let r = PointRange::new(Point(499, 499), Point(500, 500), Point(999, 999));
         assert_eq!(4, r.count());
     }
 }
