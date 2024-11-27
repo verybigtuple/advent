@@ -2,7 +2,7 @@ use crate::range::Point;
 use std::error::Error;
 use std::fmt::Display;
 use std::iter::Peekable;
-use std::str::{CharIndices};
+use std::str::CharIndices;
 
 #[derive(Debug, PartialEq)]
 pub struct ParseError;

@@ -1,6 +1,3 @@
-const MAX_X: usize = 999;
-const MAX_Y: usize = 999;
-
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct Point(pub usize, pub usize);
 
