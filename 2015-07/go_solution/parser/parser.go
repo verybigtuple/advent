@@ -7,73 +7,13 @@ import (
 	"strconv"
 )
 
-type UnaryOperand = string
-type BinaryOperand = string
-type ShiftOperand = string
-
-const arrow string = "->"
-
-const (
-	And    BinaryOperand = "AND"
-	Or     BinaryOperand = "OR"
-	LShift ShiftOperand  = "LSHIFT"
-	RShift ShiftOperand  = "RSHIFT"
-	Not    UnaryOperand  = "NOT"
-	Empty  UnaryOperand  = ""
-)
-
-type PureInput struct {
-	Input uint16
-}
-
-type WireInput struct {
-	Input string
-}
-
-type Unary struct {
-	Operand UnaryOperand
-	Input   string
-}
-
-type WiredBinary struct {
-	Operand BinaryOperand
-	InputA  string
-	InputB  string
-}
-
-type PureBinary struct {
-	Operand BinaryOperand
-	InputA  uint16
-	InputB  string
-}
-
-type Shift struct {
-	Operand ShiftOperand
-	Input   string
-	Param   byte
-}
-
-var EOF error = errors.New("EOF")
-
-type ParsingError struct {
-	Line    int
-	Message string
-	Err     error
-}
-
-func (e *ParsingError) Error() string {
-	return fmt.Sprintf("%s at line %d", e.Message, e.Line)
-}
-
-func (e *ParsingError) Unwrap() error {
-	return e.Err
-}
-
 type ParsedLine struct {
 	IntoWire  string
-	Statement interface{}
+	Statement interface{} // PureInput, WireInput, Unary, WiredBinary, PureBinary, Shift
 }
 
+
+// Parser is a sctruct for parsing every line of input into a ParsedLine
 type Parser struct {
 	scanner   *bufio.Scanner
 	line      int
@@ -90,13 +30,14 @@ func New(src *bufio.Reader) *Parser {
 }
 
 func (p *Parser) NextLine() (*ParsedLine, error) {
+	// we have to read 2 tokens in order to determine the possible type of the statement
 	var err error
 	p.bufTokens[0], err = p.readNextSrc()
-	if errors.Is(err, EOF) {
+	if errors.Is(err, ErrEOF) {
 		return nil, err
 	}
 	p.bufTokens[1], err = p.readNextSrc()
-	if errors.Is(err, EOF) {
+	if errors.Is(err, ErrEOF) {
 		return nil, &ParsingError{p.line, "unexpected end of file", err}
 	}
 	defer func() { p.line += 1 }()
@@ -127,7 +68,7 @@ func (p *Parser) readNextSrc() (string, error) {
 	if p.scanner.Scan() {
 		return p.scanner.Text(), nil
 	}
-	return "", EOF
+	return "", ErrEOF
 }
 
 func (p *Parser) getNextToken() (string, error) {
@@ -145,8 +86,8 @@ func (p *Parser) expectArrowScan() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if errors.Is(err, EOF) {
-		return "", &ParsingError{p.line, "expected -> but got EOF", EOF}
+	if errors.Is(err, ErrEOF) {
+		return "", &ParsingError{p.line, "expected -> but got EOF", ErrEOF}
 	}
 	if arrowToken == arrow {
 		return arrowToken, nil
@@ -156,8 +97,8 @@ func (p *Parser) expectArrowScan() (string, error) {
 
 func (p *Parser) expectIntScan() (uint16, error) {
 	token, err := p.getNextToken()
-	if errors.Is(err, EOF) {
-		return 0, &ParsingError{p.line, "expected integer but got EOF", EOF}
+	if errors.Is(err, ErrEOF) {
+		return 0, &ParsingError{p.line, "expected integer but got EOF", ErrEOF}
 	}
 	input, err := strconv.ParseInt(token, 10, 16)
 	if err != nil {
@@ -168,8 +109,8 @@ func (p *Parser) expectIntScan() (uint16, error) {
 
 func (p *Parser) expectAlphaScan() (string, error) {
 	token, err := p.getNextToken()
-	if errors.Is(err, EOF) {
-		return "", &ParsingError{p.line, "expected non-numeric token but got EOF", EOF}
+	if errors.Is(err, ErrEOF) {
+		return "", &ParsingError{p.line, "expected non-numeric token but got EOF", ErrEOF}
 	}
 	if !isAlpha(token) {
 		return "", &ParsingError{p.line, fmt.Sprintf("expected alpha token but got %s", token), nil}
@@ -367,9 +308,8 @@ func (p *Parser) parseAsShift() (*ParsedLine, error) {
 	return &parsedLine, nil
 }
 
+// isNumeric checks if a string is a number
 func isNumeric(s string) bool {
-	// _, err := strconv.ParseInt(s, 10, 16)
-	// return err == nil
 	for _, c := range s {
 		if c < '0' || c > '9' {
 			return false
@@ -378,6 +318,7 @@ func isNumeric(s string) bool {
 	return true
 }
 
+// isAlpha checks if a string is alphabetic
 func isAlpha(s string) bool {
 	for _, c := range s {
 		if c < 'a' || c > 'z' {
