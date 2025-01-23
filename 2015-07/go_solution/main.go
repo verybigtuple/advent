@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 
 	"github.com/verybigtuple/advent/go2015-07/parser"
 )
@@ -37,129 +38,100 @@ func CalcShift(inputA uint16, param byte, operand parser.ShiftOperand) (uint16, 
 	return 0, errors.ErrUnsupported
 }
 
-func CalcStatement(pLine parser.ParsedLine, calculatedWires map[string]uint16) (bool, error) {
-	var err error
+// CalcStatement calculates the current wire if possible. If the wire cannot be calculated, returns false as the second return value.
+// It does not change the calculatedWires map.
+func CalcStatement(pLine *parser.ParsedLine, calculatedWires map[string]uint16) (uint16, bool, error) {
 	switch s := pLine.Statement.(type) {
 	case parser.PureInput:
-		calculatedWires[pLine.IntoWire] = s.Input
-		return true, nil
+		return s.Input, true, nil
 	case parser.WireInput:
-		if _, ok := calculatedWires[s.Input]; ok {
-			calculatedWires[pLine.IntoWire] = calculatedWires[s.Input]
+		if input, ok := calculatedWires[s.Input]; ok {
+			return input, true, nil
 		}
-		return true, nil
 	case parser.Unary:
-		if _, ok := calculatedWires[s.Input]; ok {
-			calculatedWires[pLine.IntoWire], err = CalcUnary(calculatedWires[s.Input], s.Operand)
+		if input, ok := calculatedWires[s.Input]; ok {
+			unary, err := CalcUnary(input, s.Operand)
 			if err != nil {
-				return false, err
+				return 0, false, err
 			}
-			return true, nil
+			return unary, true, nil
 		}
-
 	case parser.PureBinary:
-		if _, ok := calculatedWires[s.InputB]; ok {
-			calculatedWires[pLine.IntoWire], err = CalcBinary(s.InputA, calculatedWires[s.InputB], s.Operand)
+		if inputB, ok := calculatedWires[s.InputB]; ok {
+			binary, err := CalcBinary(s.InputA, inputB, s.Operand)
 			if err != nil {
-				return false, err
+				return 0, false, err
 			}
-			return true, nil
+			return binary, true, nil
 		}
-
 	case parser.WiredBinary:
-		_, okA := calculatedWires[s.InputA]
-		_, okB := calculatedWires[s.InputB]
+		inputA, okA := calculatedWires[s.InputA]
+		inputB, okB := calculatedWires[s.InputB]
 		if okA && okB {
-			calculatedWires[pLine.IntoWire], err = CalcBinary(calculatedWires[s.InputA], calculatedWires[s.InputB], s.Operand)
+			binary, err := CalcBinary(inputA, inputB, s.Operand)
 			if err != nil {
-				return false, err
+				return 0, false, err
 			}
-			return true, nil
+			return binary, true, nil
 		}
-
 	case parser.Shift:
-		if _, ok := calculatedWires[s.Input]; ok {
-			calculatedWires[pLine.IntoWire], err = CalcShift(calculatedWires[s.Input], s.Param, s.Operand)
+		if input, ok := calculatedWires[s.Input]; ok {
+			shift, err := CalcShift(input, s.Param, s.Operand)
 			if err != nil {
-				return false, err
+				return 0, false, err
 			}
-			return true, nil
+			return shift, true, nil
 		}
 
 	}
-	return false, nil
+	return 0, false, nil
 }
 
-func CalcWire(wires map[string]interface{}, wireName string) (uint16, error) {
+func CalcWire(wires []*parser.ParsedLine, wireName string) (uint16, error) {
 	caclulatedWires := make(map[string]uint16)
 	for {
 		changed := false
 
-		for wName, stat := range wires {
-			if _, ok := caclulatedWires[wName]; ok {
+		for _, parsedLine := range wires {
+			if _, ok := caclulatedWires[parsedLine.IntoWire]; ok {
 				continue
 			}
 
-			var err error
-			switch s := stat.(type) {
-			case parser.PureInput:
-				caclulatedWires[wName] = s.Input
-				changed = true
-			case parser.WireInput:
-				if _, ok := caclulatedWires[s.Input]; ok {
-					caclulatedWires[wName] = caclulatedWires[s.Input]
-				}
-				changed = true
-			case parser.Unary:
-				if _, ok := caclulatedWires[s.Input]; ok {
-					caclulatedWires[wName], err = CalcUnary(caclulatedWires[s.Input], s.Operand)
-					if err != nil {
-						return 0, err
-					}
-					changed = true
-				}
+			value, isCalc, err := CalcStatement(parsedLine, caclulatedWires)
+			if err != nil {
+				return 0, err
+			}
+			if isCalc {
+				caclulatedWires[parsedLine.IntoWire] = value
+			}
+			changed = changed || isCalc
 
-			case parser.PureBinary:
-				if _, ok := caclulatedWires[s.InputB]; ok {
-					caclulatedWires[wName], err = CalcBinary(s.InputA, caclulatedWires[s.InputB], s.Operand)
-					if err != nil {
-						return 0, err
-					}
-					changed = true
-				}
-
-			case parser.WiredBinary:
-				_, okA := caclulatedWires[s.InputA]
-				_, okB := caclulatedWires[s.InputB]
-				if okA && okB {
-					caclulatedWires[wName], err = CalcBinary(caclulatedWires[s.InputA], caclulatedWires[s.InputB], s.Operand)
-					if err != nil {
-						return 0, err
-					}
-					changed = true
-				}
-
-			case parser.Shift:
-				if _, ok := caclulatedWires[s.Input]; ok {
-					caclulatedWires[wName], err = CalcShift(caclulatedWires[s.Input], s.Param, s.Operand)
-					if err != nil {
-						return 0, err
-					}
-					changed = true
-				}
-			} // switch
-
-			if _, ok := caclulatedWires[wireName]; ok {
-				return caclulatedWires[wireName], nil
+			if calcWire, ok := caclulatedWires[wireName]; ok {
+				return calcWire, nil
 			}
 
-		} // for	dict
+		}
 
 		if !changed {
 			return 0, fmt.Errorf("wire with the name %s cannot be resolved", wireName)
 		}
-
 	}
+}
+
+func readAllWires(f *os.File) ([]*parser.ParsedLine, error) {
+	p := parser.New(bufio.NewReader(f))
+	wires := make([]*parser.ParsedLine, 0)
+	for {
+		parsedLine, err := p.NextLine()
+		if err != nil {
+			if errors.Is(err, parser.ErrEOF) {
+				break
+			}
+			return nil, err
+		}
+		wires = append(wires, parsedLine)
+	}
+	return wires, nil
 }
 
 func run() error {
@@ -169,23 +141,32 @@ func run() error {
 	}
 	defer f.Close()
 
-	p := parser.New(bufio.NewReader(f))
-	wires := make(map[string]interface{})
-	for {
-		parsedLine, err := p.NextLine()
-		if err != nil {
-			if errors.Is(err, parser.EOF) {
-				break
-			}
-			return err
-		}
-		wires[parsedLine.IntoWire] = parsedLine.Statement
-	}
-	result, err := CalcWire(wires, "a")
+	wires, err := readAllWires(f)
 	if err != nil {
 		return err
 	}
-	println(result)
+
+	// calculate the firtst part of the problem
+	result1, err := CalcWire(wires, "a")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Part1 answer: %d\n", result1)
+
+	// Transform as per the problem statement
+	bWireIdx := slices.IndexFunc(wires, func(w *parser.ParsedLine) bool { return w.IntoWire == "b" })
+	if bWireIdx == -1 {
+		return errors.New("wire b not found")
+	}
+	wires[bWireIdx].Statement = parser.PureInput{Input: result1}
+
+	// calculate the second part of the problem
+	result2, err := CalcWire(wires, "a")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Part2 answer: %d\n", result2)
+
 	return nil
 
 }

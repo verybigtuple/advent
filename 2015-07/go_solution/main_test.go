@@ -7,37 +7,33 @@ import (
 )
 
 func TestComplexShema(t *testing.T) {
-	m := map[string]interface{}{
-		"x": parser.PureInput{123},
-		"y": parser.PureInput{456},
-		"d": parser.WiredBinary{parser.And, "x", "y"},
-		"e": parser.WiredBinary{parser.Or, "x", "y"},
-		"f": parser.Shift{parser.LShift, "x", 2},
-		"g": parser.Shift{parser.RShift, "y", 2},
-		"h": parser.Unary{parser.Not, "x"},
-		"i": parser.Unary{parser.Not, "y"},
-		"j": parser.WireInput{"x"},
+	testCases := []struct {
+		parsedLine *parser.ParsedLine
+		want       uint16
+	}{
+		{&parser.ParsedLine{"x", parser.PureInput{123}}, 123},
+		{&parser.ParsedLine{"y", parser.PureInput{456}}, 456},
+		{&parser.ParsedLine{"d", parser.WiredBinary{parser.And, "x", "y"}}, 72},
+		{&parser.ParsedLine{"e", parser.WiredBinary{parser.Or, "x", "y"}}, 507},
+		{&parser.ParsedLine{"f", parser.Shift{parser.LShift, "x", 2}}, 492},
+		{&parser.ParsedLine{"g", parser.Shift{parser.RShift, "y", 2}}, 114},
+		{&parser.ParsedLine{"h", parser.Unary{parser.Not, "x"}}, 65412},
+		{&parser.ParsedLine{"i", parser.Unary{parser.Not, "y"}}, 65079},
+		{&parser.ParsedLine{"j", parser.WireInput{"x"}}, 123},
 	}
 
-	want := map[string]uint16{
-		"x": 123,
-		"y": 456,
-		"d": 72,
-		"e": 507,
-		"f": 492,
-		"g": 114,
-		"h": 65412,
-		"i": 65079,
-		"j": 123,
+	wires := make([]*parser.ParsedLine, 0, len(testCases))
+	for _, tc := range testCases {
+		wires = append(wires, tc.parsedLine)
 	}
 
-	for wire := range m {
-		t.Run(wire, func(t *testing.T) {
-			got, err := CalcWire(m, wire)
+	for _, tc := range testCases {
+		t.Run(tc.parsedLine.IntoWire, func(t *testing.T) {
+			got, err := CalcWire(wires, tc.parsedLine.IntoWire)
 			if err != nil {
 				t.Errorf("Calc error %v", err)
 			}
-			w := want[wire]
+			w := tc.want
 			if got != w {
 				t.Errorf("want: %d, got: {%d}", w, got)
 			}
